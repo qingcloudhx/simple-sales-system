@@ -8,7 +8,7 @@
                 <h5 class="card-title mb-0">批量导入商品 (CSV)</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">请上传CSV文件，列名：商品名、单价、库存、分类</p>
+                <p class="card-text">请上传CSV文件，必填列：商品名、单价、库存、分类；可选列：项目、货号、品牌、价格（导入后在商品列表展示，仅供查看，不可在编辑中修改）</p>
                 <div class="mb-3">
                     <a href="{{ url_for('download_import_template') }}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-download"></i> 下载CSV模板

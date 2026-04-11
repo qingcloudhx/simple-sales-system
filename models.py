@@ -21,6 +21,11 @@ class Category(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
+    # 新增字段：项目、货号、品牌、价格（显示用）
+    project = db.Column(db.String(128), nullable=True)
+    sku = db.Column(db.String(64), nullable=True)
+    brand = db.Column(db.String(64), nullable=True)
+    retail_price = db.Column(db.Numeric(10, 2), nullable=True)
     stock = db.Column(db.Integer, default=0)
     price = db.Column(db.Numeric(10, 2))
     image = db.Column(db.String(1024))

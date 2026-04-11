@@ -62,6 +62,8 @@ app.config['DASHBOARD_ANNOUNCEMENT'] = os.getenv('DASHBOARD_ANNOUNCEMENT', '')
 app.config['ANNOUNCEMENT_ENABLED'] = os.getenv('ANNOUNCEMENT_ENABLED', 'False').lower() == 'true'
 app.config['ANALYZE_SCRIPT'] = os.getenv('ANALYZE_SCRIPT', '')
 app.config['ANALYZE_ENABLE'] = os.getenv('ANALYZE_ENABLE', 'False').lower() == 'true'
+app.config['ADMIN_USERNAME'] = os.getenv('ADMIN_USERNAME', 'admin')
+app.config['ADMIN_PASSWORD'] = os.getenv('ADMIN_PASSWORD', 'admin123')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 db.init_app(app)
@@ -934,13 +936,13 @@ def download_import_template():
     output = StringIO()
     writer = csv.writer(output)
 
-    # 写入表头
-    writer.writerow(['商品名', '单价', '库存', '分类', '图片链接(可选)'])
+    # 写入表头（可选列：项目、货号、品牌、价格）
+    writer.writerow(['商品名', '单价', '库存', '分类', '项目(可选)', '货号(可选)', '品牌(可选)', '价格(可选)', '图片链接(可选)'])
 
     # 写入示例数据
-    writer.writerow(['示例商品1', '19.99', '100', '电子产品', 'http://example.com/image1.jpg'])
-    writer.writerow(['示例商品2', '29.99', '50', '服装', ''])
-    writer.writerow(['示例商品3', '9.99', '200', '食品', ''])
+    writer.writerow(['示例商品1', '19.99', '100', '电子产品', '项目A', 'SKU123', '品牌X', '21.99', 'http://example.com/image1.jpg'])
+    writer.writerow(['示例商品2', '29.99', '50', '服装', '', 'SKU456', '品牌Y', '', ''])
+    writer.writerow(['示例商品3', '9.99', '200', '食品', '项目C', '', '', '', ''])
 
     # 创建响应
     response = make_response(output.getvalue())
@@ -1458,26 +1460,28 @@ if __name__ == '__main__':
                 exit(1)
         db.create_all()
 
-        # 确保至少有一个活跃的管理员账户
+        # 确保至少有一个活跃的管理员账户（从 .env 读取配置）
+        admin_username = app.config.get('ADMIN_USERNAME', 'admin')
+        admin_password = app.config.get('ADMIN_PASSWORD', 'admin123')
         active_admin_exists = User.query.filter_by(is_admin=True, is_active=True).first()
         if not active_admin_exists:
-            # 尝试查找名为'admin'的用户
-            admin_user = User.query.filter_by(username='admin').first()
+            # 尝试查找已存在的管理员用户
+            admin_user = User.query.filter_by(username=admin_username).first()
             if admin_user:
                 # 如果找到，确保它是活跃的管理员
                 admin_user.is_admin = True
                 admin_user.is_active = True
                 print(f"已将用户 '{admin_user.username}' 设置为活跃管理员")
             else:
-                # 如果没有找到，创建新的默认管理员账户
+                # 如果没有找到，创建新的管理员账户
                 admin = User(
-                    username='admin', 
-                    password=generate_password_hash('admin'), 
+                    username=admin_username, 
+                    password=generate_password_hash(admin_password), 
                     is_admin=True, 
                     is_active=True
                 )
                 db.session.add(admin)
-                print("创建了默认管理员账户: admin/admin")
+                print(f"创建了管理员账户: {admin_username}/{admin_password}")
             db.session.commit()
         
         # 确保存在默认分类
@@ -1486,5 +1490,16 @@ if __name__ == '__main__':
             db.session.add(default_category)
             db.session.commit()
             print("创建了默认分类: 未分类")
+        # 尝试为已有数据库添加新增列（若已存在会抛错并被忽略）
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("ALTER TABLE product ADD COLUMN project VARCHAR(128)"))
+            db.session.execute(text("ALTER TABLE product ADD COLUMN sku VARCHAR(64)"))
+            db.session.execute(text("ALTER TABLE product ADD COLUMN brand VARCHAR(64)"))
+            db.session.execute(text("ALTER TABLE product ADD COLUMN retail_price DECIMAL(10,2)"))
+            db.session.commit()
+            print('已向 product 表添加新列（project, sku, brand, retail_price）')
+        except Exception:
+            db.session.rollback()
 
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
