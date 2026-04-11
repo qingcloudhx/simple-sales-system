@@ -5,9 +5,10 @@ from models import db, Product, Category
 def import_products_csv(file):
     df = pd.read_csv(file)
     # 1. 检查列名是否完全匹配（忽略空格和大小写，但严格匹配文字）
-    required_columns = ['商品名', '销售价', '库存', '分类']
-    # 可选列：项目、货号、品牌、成本价、市场价、图片链接
-    optional_columns = ['项目', '货号', '品牌', '成本价', '市场价', '图片链接']
+    required_columns = ['中文名称', '销售价', '库存', '分类']
+    # 可选列：英文名称、项目、货号、品牌、成本价、市场价、图片链接
+    
+    optional_columns = ['英文名称', '项目', '货号', '品牌', '成本价', '市场价', '图片链接']
     # 清洗列名（去除前后空格）
     def normalize_col_name(c):
         if c is None:
@@ -33,7 +34,7 @@ def import_products_csv(file):
     for idx, row in df.iterrows():
         row_num = idx + 1
         # 2. 清洗字段值（去除前后空格）
-        prod_name = str(row.get('商品名', '')).strip()
+        prod_name = str(row.get('中文名称', '')).strip()
         # 使用 normalized_map 查找实际列名，兼容列头格式
         def get_raw(col_name):
             actual = normalized_map.get(col_name)
@@ -42,6 +43,7 @@ def import_products_csv(file):
             return row.get(actual)
 
         # 为了兼容 pandas 的 NaN，需要用 pd.isna 判断并统一为空字符串
+        raw_english_name = get_raw('英文名称')
         raw_price = get_raw('销售价')
         raw_cost_price = get_raw('成本价')
         raw_market_price = get_raw('市场价')
@@ -52,6 +54,7 @@ def import_products_csv(file):
         raw_brand = get_raw('品牌')
         raw_image = get_raw('图片链接')
 
+        english_name = None if raw_english_name is None or pd.isna(raw_english_name) else str(raw_english_name).strip()
         price_str = '' if raw_price is None or pd.isna(raw_price) else str(raw_price).strip()
         cost_price_str = '' if raw_cost_price is None or pd.isna(raw_cost_price) else str(raw_cost_price).strip()
         market_price_str = '' if raw_market_price is None or pd.isna(raw_market_price) else str(raw_market_price).strip()
@@ -64,7 +67,7 @@ def import_products_csv(file):
         
         # 3. 严格检查空值（包括空字符串和纯空格）
         if not prod_name:
-            print(f"第{row_num}行：商品名为空或仅含空格")
+            print(f"第{row_num}行：中文名称为空或仅含空格")
             continue
         if not price_str:
             print(f"第{row_num}行：销售价为空或仅含空格")
@@ -115,6 +118,7 @@ def import_products_csv(file):
         existing_product = Product.query.filter_by(name=prod_name).first()
         if existing_product:
             # 更新现有商品
+            existing_product.english_name = english_name if english_name else None
             existing_product.price = price
             existing_product.cost_price = cost_price
             existing_product.market_price = market_price
@@ -128,11 +132,12 @@ def import_products_csv(file):
                 existing_product.sku = sku
             if brand is not None and brand != '':
                 existing_product.brand = brand
-            print(f"第{row_num}行：更新商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand})")
+            print(f"第{row_num}行：更新商品 '{prod_name}' (英文名={english_name}, 项目={project}, 货号={sku}, 品牌={brand})")
         else:
             # 创建新商品
             product = Product(
                 name=prod_name,
+                english_name=english_name if english_name else None,
                 price=price,
                 cost_price=cost_price,
                 market_price=market_price,
@@ -144,7 +149,7 @@ def import_products_csv(file):
                 brand=brand if brand else None
             )
             db.session.add(product)
-            print(f"第{row_num}行：创建商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand})")
+            print(f"第{row_num}行：创建商品 '{prod_name}' (英文名={english_name}, 项目={project}, 货号={sku}, 品牌={brand})")
         
         success_count += 1
     

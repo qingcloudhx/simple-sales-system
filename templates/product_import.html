@@ -8,7 +8,7 @@
                 <h5 class="card-title mb-0">批量导入商品 (CSV)</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">请上传CSV文件，必填列：商品名、销售价、库存、分类；可选列：项目、货号、品牌、成本价、市场价、图片链接</p>
+                <p class="card-text">请上传CSV文件，必填列：中文名称、销售价、库存、分类；可选列：英文名称、项目、货号、品牌、成本价、市场价、图片链接</p>
                 <div class="mb-3">
                     <a href="{{ url_for('download_import_template') }}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-download"></i> 下载CSV模板
@@ -37,9 +37,13 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     {{ manual_form.hidden_tag() }}
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-12 col-md-6">
                             {{ manual_form.name.label }} 
                             {{ manual_form.name(class="form-control") }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            {{ manual_form.english_name.label }} 
+                            {{ manual_form.english_name(class="form-control", placeholder="可选") }}
                         </div>
                         <div class="col-12 col-md-4">
                             {{ manual_form.project.label }}

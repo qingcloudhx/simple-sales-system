@@ -32,7 +32,8 @@ class Tag(db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128))
+    name = db.Column(db.String(128))  # 中文名称
+    english_name = db.Column(db.String(256), nullable=True)  # 英文名称
     # 新增字段：项目、货号、品牌
     project = db.Column(db.String(128), nullable=True)
     sku = db.Column(db.String(64), nullable=True)

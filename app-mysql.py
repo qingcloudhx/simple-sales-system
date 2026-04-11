@@ -756,7 +756,12 @@ def products():
     category_id = request.args.get('category_id', type=int)
     query = Product.query
     if keyword:
-        query = query.filter(Product.name.like(f'%{keyword}%'))
+        query = query.filter(
+            db.or_(
+                Product.name.like(f'%{keyword}%'),
+                Product.english_name.like(f'%{keyword}%')
+            )
+        )
     if category_id:  # 如果有分类ID则过滤
         query = query.filter_by(category_id=category_id)
     products = query.order_by(Product.id.desc()).paginate(page=page, per_page=PER_PAGE)
@@ -781,6 +786,7 @@ def product_edit(pid):
         form.category.data = prod.category_id
     if form.validate_on_submit():
         prod.name = form.name.data
+        prod.english_name = form.english_name.data.strip() if form.english_name.data else None
         prod.price = form.price.data
         prod.cost_price = form.cost_price.data if form.cost_price.data else None
         prod.market_price = form.market_price.data if form.market_price.data else None
@@ -904,6 +910,7 @@ def product_import():
             # 创建新商品
             product = Product(
                 name=manual_form.name.data,
+                english_name=manual_form.english_name.data.strip() if manual_form.english_name.data else None,
                 project=manual_form.project.data.strip() if manual_form.project.data else None,
                 sku=manual_form.sku.data.strip() if manual_form.sku.data else None,
                 brand=manual_form.brand.data.strip() if manual_form.brand.data else None,
@@ -950,13 +957,13 @@ def download_import_template():
     output = StringIO()
     writer = csv.writer(output)
 
-    # 写入表头（必填：商品名、销售价、库存、分类；可选：项目、货号、品牌、成本价、市场价、图片链接）
-    writer.writerow(['商品名', '销售价', '库存', '分类', '项目', '货号', '品牌', '成本价', '市场价', '图片链接'])
+    # 写入表头（必填：中文名称、销售价、库存、分类；可选：英文名称、项目、货号、品牌、成本价、市场价、图片链接）
+    writer.writerow(['中文名称', '英文名称', '销售价', '库存', '分类', '项目', '货号', '品牌', '成本价', '市场价', '图片链接'])
 
     # 写入示例数据
-    writer.writerow(['示例商品1', '19.99', '100', '电子产品', '项目A', 'SKU001', '品牌X', '15.00', '29.99', 'http://example.com/image1.jpg'])
-    writer.writerow(['示例商品2', '29.99', '50', '服装', '', 'SKU002', '品牌Y', '20.00', '39.99', ''])
-    writer.writerow(['示例商品3', '9.99', '200', '食品', '项目C', 'SKU003', '', '7.00', '15.00', ''])
+    writer.writerow(['示例商品1', 'Sample Product 1', '19.99', '100', '电子产品', '项目A', 'SKU001', '品牌X', '15.00', '29.99', 'http://example.com/image1.jpg'])
+    writer.writerow(['示例商品2', 'Sample Product 2', '29.99', '50', '服装', '', 'SKU002', '品牌Y', '20.00', '39.99', ''])
+    writer.writerow(['示例商品3', 'Sample Product 3', '9.99', '200', '食品', '项目C', 'SKU003', '', '7.00', '15.00', ''])
 
     # 创建响应
     response = make_response(output.getvalue())
@@ -1257,7 +1264,12 @@ def sales():
     # 查询并分页
     query = Product.query.order_by(Product.id.desc())
     if keyword:
-        query = query.filter(Product.name.like(f'%{keyword}%'))
+        query = query.filter(
+            db.or_(
+                Product.name.like(f'%{keyword}%'),
+                Product.english_name.like(f'%{keyword}%')
+            )
+        )
     if category_id:
         query = query.filter_by(category_id=category_id)
 
@@ -1312,7 +1324,12 @@ def sales_simple():
     # 查询并分页
     query = Product.query.order_by(Product.id.desc())
     if keyword:
-        query = query.filter(Product.name.like(f'%{keyword}%'))
+        query = query.filter(
+            db.or_(
+                Product.name.like(f'%{keyword}%'),
+                Product.english_name.like(f'%{keyword}%')
+            )
+        )
     if category_id:
         query = query.filter_by(category_id=category_id)
 

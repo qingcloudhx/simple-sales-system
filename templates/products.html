@@ -6,7 +6,7 @@
     <form method="get" class="row g-2 align-items-center">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="col-12 col-md-4">
-            <input type="text" name="keyword" class="form-control" placeholder="搜索商品" value="{{ request.args.get('keyword', '') }}">
+            <input type="text" name="keyword" class="form-control" placeholder="搜索商品（中文名/英文名）" value="{{ request.args.get('keyword', '') }}">
         </div>
         <div class="col-12 col-md-3">
             <select name="category_id" class="form-select">
@@ -47,7 +47,8 @@
             <tr>
                 {% if current_user.is_admin %}<th width="60" class="text-center">选择</th>{% endif %}
                 <th class="text-center">图片</th>
-                <th class="text-center">名称</th>
+                <th class="text-center">中文名称</th>
+                <th class="text-center">英文名称</th>
                 <th class="text-center">项目</th>
                 <th class="text-center">货号</th>
                 <th class="text-center">品牌</th>
@@ -81,7 +82,8 @@
                         </div>
                     {% endif %}
                 </td>
-                <td data-label="名称" class="text-center">{{ p.name }}</td>
+                <td data-label="中文名称" class="text-center">{{ p.name }}</td>
+                <td data-label="英文名称" class="text-center">{{ p.english_name or '' }}</td>
                 <td data-label="项目" class="text-center">{{ p.project or '' }}</td>
                 <td data-label="货号" class="text-center">{{ p.sku or '' }}</td>
                 <td data-label="品牌" class="text-center">{{ p.brand or '' }}</td>

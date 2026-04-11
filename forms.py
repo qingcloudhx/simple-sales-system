@@ -57,7 +57,8 @@ class TagEditForm(FlaskForm):
     submit = SubmitField('保存')
 
 class ProductForm(FlaskForm):
-    name = StringField('商品名', validators=[DataRequired()])
+    name = StringField('中文名称', validators=[DataRequired()])
+    english_name = StringField('英文名称', validators=[Optional()])
     price = FloatField('销售价', validators=[DataRequired(), NumberRange(min=0)])
     cost_price = FloatField('成本价', validators=[Optional(), NumberRange(min=0)])
     market_price = FloatField('市场价', validators=[Optional(), NumberRange(min=0)])
@@ -68,7 +69,8 @@ class ProductForm(FlaskForm):
     submit = SubmitField('保存')
 
 class ManualProductForm(FlaskForm):
-    name = StringField('商品名', validators=[DataRequired()])
+    name = StringField('中文名称', validators=[DataRequired()])
+    english_name = StringField('英文名称', validators=[Optional()])
     project = StringField('项目', validators=[Optional()])
     sku = StringField('货号', validators=[Optional()])
     brand = StringField('品牌', validators=[Optional()])

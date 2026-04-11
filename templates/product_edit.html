@@ -11,6 +11,10 @@
             {{ form.name(class="form-control") }}
         </div>
         <div class="col-12 col-md-6">
+            {{ form.english_name.label }} 
+            {{ form.english_name(class="form-control", value=product.english_name or '') }}
+        </div>
+        <div class="col-12 col-md-6">
             {{ form.category.label }} 
             {{ form.category(class="form-select") }}
         </div>
