@@ -48,7 +48,6 @@
                 <li class="nav-item"><a class="nav-link" href="/users">用户管理</a></li>
                 <li class="nav-item"><a class="nav-link" href="/logs">操作日志</a></li>
                 {% endif %}
-                <li class="nav-item"><a class="nav-link" href="/export">导出报表</a></li>
             </ul>
             {% if current_user.is_authenticated %}
             <span class="navbar-text me-2">用户：{{ current_user.username }}{% if current_user.is_admin %} 

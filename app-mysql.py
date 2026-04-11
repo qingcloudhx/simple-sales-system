@@ -373,6 +373,11 @@ def dateformat(value, format='%Y-%m-%d'):
 @app.route('/')
 @login_required
 def dashboard():
+    # 二级密码验证检查
+    secondary_password = os.getenv('SECONDARY_PASSWORD')
+    if secondary_password and session.get('need_secondary_verify') and not session.get('secondary_verified'):
+        return redirect(url_for('secondary_verify'))
+    
     # 获取日期范围参数，默认为今天
     start_date_str = request.args.get('start_date', '')
     end_date_str = request.args.get('end_date', '')
@@ -632,6 +637,13 @@ def login():
             record_login_attempt(form.username.data, True)
             # 清除验证码session
             session.pop('captcha', None)
+            
+            # 检查是否需要二级密码验证
+            secondary_password = os.getenv('SECONDARY_PASSWORD')
+            if secondary_password:
+                session['need_secondary_verify'] = True
+                return redirect(url_for('secondary_verify'))
+            
             return redirect(url_for('dashboard'))
         else:
             # 登录失败
@@ -646,6 +658,24 @@ def login():
     return render_template('login.html', form=form, 
                          login_locked=login_locked, 
                          lock_time_remaining=lock_time_remaining)
+
+@app.route('/verify-secondary', methods=['GET', 'POST'])
+@login_required
+def secondary_verify():
+    secondary_password = os.getenv('SECONDARY_PASSWORD')
+    if not secondary_password:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if password == secondary_password:
+            session['secondary_verified'] = True
+            session.pop('need_secondary_verify', None)
+            return redirect(url_for('dashboard'))
+        else:
+            flash('二级密码错误', 'danger')
+    
+    return render_template('secondary_verify.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -746,6 +776,8 @@ def reset_password(token):
 @login_required
 def logout():
     logout_user()
+    session.pop('secondary_verified', None)
+    session.pop('need_secondary_verify', None)
     return redirect(url_for('login'))
 
 @app.route('/products')
@@ -756,12 +788,7 @@ def products():
     category_id = request.args.get('category_id', type=int)
     query = Product.query
     if keyword:
-        query = query.filter(
-            db.or_(
-                Product.name.like(f'%{keyword}%'),
-                Product.english_name.like(f'%{keyword}%')
-            )
-        )
+        query = query.filter(Product.name.like(f'%{keyword}%'))
     if category_id:  # 如果有分类ID则过滤
         query = query.filter_by(category_id=category_id)
     products = query.order_by(Product.id.desc()).paginate(page=page, per_page=PER_PAGE)
@@ -786,7 +813,6 @@ def product_edit(pid):
         form.category.data = prod.category_id
     if form.validate_on_submit():
         prod.name = form.name.data
-        prod.english_name = form.english_name.data.strip() if form.english_name.data else None
         prod.price = form.price.data
         prod.cost_price = form.cost_price.data if form.cost_price.data else None
         prod.market_price = form.market_price.data if form.market_price.data else None
@@ -911,9 +937,7 @@ def product_import():
             product = Product(
                 name=manual_form.name.data,
                 english_name=manual_form.english_name.data.strip() if manual_form.english_name.data else None,
-                project=manual_form.project.data.strip() if manual_form.project.data else None,
                 sku=manual_form.sku.data.strip() if manual_form.sku.data else None,
-                brand=manual_form.brand.data.strip() if manual_form.brand.data else None,
                 price=manual_form.price.data,
                 cost_price=manual_form.cost_price.data if manual_form.cost_price.data else None,
                 market_price=manual_form.market_price.data if manual_form.market_price.data else None,
@@ -957,13 +981,13 @@ def download_import_template():
     output = StringIO()
     writer = csv.writer(output)
 
-    # 写入表头（必填：中文名称、销售价、库存、分类；可选：英文名称、项目、货号、品牌、成本价、市场价、图片链接）
-    writer.writerow(['中文名称', '英文名称', '销售价', '库存', '分类', '项目', '货号', '品牌', '成本价', '市场价', '图片链接'])
+    # 写入表头（必填：中文名称、销售价、库存、分类；可选：英文名称、货号、成本价、市场价、图片链接）
+    writer.writerow(['中文名称', '英文名称', '销售价', '库存', '分类', '货号', '成本价', '市场价', '图片链接'])
 
     # 写入示例数据
-    writer.writerow(['示例商品1', 'Sample Product 1', '19.99', '100', '电子产品', '项目A', 'SKU001', '品牌X', '15.00', '29.99', 'http://example.com/image1.jpg'])
-    writer.writerow(['示例商品2', 'Sample Product 2', '29.99', '50', '服装', '', 'SKU002', '品牌Y', '20.00', '39.99', ''])
-    writer.writerow(['示例商品3', 'Sample Product 3', '9.99', '200', '食品', '项目C', 'SKU003', '', '7.00', '15.00', ''])
+    writer.writerow(['示例商品1', 'Sample Product 1', '19.99', '100', '电子产品', 'SKU001', '15.00', '29.99', 'http://example.com/image1.jpg'])
+    writer.writerow(['示例商品2', 'Sample Product 2', '29.99', '50', '服装', 'SKU002', '20.00', '39.99', ''])
+    writer.writerow(['示例商品3', 'Sample Product 3', '9.99', '200', '食品', 'SKU003', '7.00', '15.00', ''])
 
     # 创建响应
     response = make_response(output.getvalue())
@@ -1264,12 +1288,7 @@ def sales():
     # 查询并分页
     query = Product.query.order_by(Product.id.desc())
     if keyword:
-        query = query.filter(
-            db.or_(
-                Product.name.like(f'%{keyword}%'),
-                Product.english_name.like(f'%{keyword}%')
-            )
-        )
+        query = query.filter(Product.name.like(f'%{keyword}%'))
     if category_id:
         query = query.filter_by(category_id=category_id)
 
@@ -1324,12 +1343,7 @@ def sales_simple():
     # 查询并分页
     query = Product.query.order_by(Product.id.desc())
     if keyword:
-        query = query.filter(
-            db.or_(
-                Product.name.like(f'%{keyword}%'),
-                Product.english_name.like(f'%{keyword}%')
-            )
-        )
+        query = query.filter(Product.name.like(f'%{keyword}%'))
     if category_id:
         query = query.filter_by(category_id=category_id)
 

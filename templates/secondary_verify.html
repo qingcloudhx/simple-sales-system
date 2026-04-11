@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}二级验证{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card mt-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0 text-center">二级安全验证</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-center text-muted mb-4">请输入二级密码以继续访问系统</p>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-danger">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">二级密码</label>
+                        <input type="password" class="form-control" id="password" name="password" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">验证</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('logout') }}">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

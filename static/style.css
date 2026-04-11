@@ -753,3 +753,31 @@ body {
         margin-bottom: 1rem;
     }
 }
+
+/* 表格表头悬停高亮效果 */
+.table thead th {
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+}
+
+.table thead th:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+    transform: scale(1.02);
+}
+
+.table thead th:first-child:hover {
+    transform: none;
+}
+
+/* 表头排序图标效果 */
+.table thead th .sort-icon {
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    margin-left: 4px;
+}
+
+.table thead th:hover .sort-icon {
+    opacity: 1;
+}

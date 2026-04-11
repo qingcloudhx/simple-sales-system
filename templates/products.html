@@ -49,9 +49,7 @@
                 <th class="text-center">图片</th>
                 <th class="text-center">中文名称</th>
                 <th class="text-center">英文名称</th>
-                <th class="text-center">项目</th>
                 <th class="text-center">货号</th>
-                <th class="text-center">品牌</th>
                 <th class="mobile-hidden text-center">分类</th>
                 <th class="text-center">标签</th>
                 <th class="text-center">销售价</th>
@@ -84,9 +82,7 @@
                 </td>
                 <td data-label="中文名称" class="text-center">{{ p.name }}</td>
                 <td data-label="英文名称" class="text-center">{{ p.english_name or '' }}</td>
-                <td data-label="项目" class="text-center">{{ p.project or '' }}</td>
                 <td data-label="货号" class="text-center">{{ p.sku or '' }}</td>
-                <td data-label="品牌" class="text-center">{{ p.brand or '' }}</td>
                 <td data-label="分类" class="mobile-hidden text-center">{{ p.category.name }}</td>
                 <td data-label="标签" class="text-center">
                     {% if p.tags %}
