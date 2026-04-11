@@ -775,14 +775,22 @@ def product_edit(pid):
         abort(404)
     form = ProductForm(obj=prod)
     categories = Category.query.all()
+    tags = Tag.query.all()
     form.category.choices = [(c.id, c.name) for c in categories]
     if request.method == "GET":
         form.category.data = prod.category_id
     if form.validate_on_submit():
         prod.name = form.name.data
         prod.price = form.price.data
+        prod.cost_price = form.cost_price.data if form.cost_price.data else None
+        prod.market_price = form.market_price.data if form.market_price.data else None
         prod.stock = form.stock.data
         prod.category_id = form.category.data
+        
+        # 处理标签
+        tag_ids = request.form.getlist('tag_ids')
+        prod.tags = Tag.query.filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
+        
         img_path = form.image_link.data.strip() if form.image_link.data else ''
         img = form.image.data
         if not img_path and img:
@@ -797,7 +805,7 @@ def product_edit(pid):
         log_action(current_user, f"编辑商品:{prod.name}")
         flash('保存成功')
         return redirect(url_for('products'))
-    return render_template('product_edit.html', form=form, product=prod)
+    return render_template('product_edit.html', form=form, product=prod, tags=tags)
 
 @app.route('/products/delete/<int:pid>', methods=['POST'])
 @login_required
@@ -897,6 +905,8 @@ def product_import():
             product = Product(
                 name=manual_form.name.data,
                 price=manual_form.price.data,
+                cost_price=manual_form.cost_price.data if manual_form.cost_price.data else None,
+                market_price=manual_form.market_price.data if manual_form.market_price.data else None,
                 stock=manual_form.stock.data,
                 category_id=manual_form.category.data
             )
@@ -924,7 +934,8 @@ def product_import():
         except Exception as e:
             flash('商品添加失败: ' + str(e), 'error')
 
-    return render_template('product_import.html', csv_form=csv_form, manual_form=manual_form)
+    tags = Tag.query.all()
+    return render_template('product_import.html', csv_form=csv_form, manual_form=manual_form, tags=tags)
 
 @app.route('/products/import/template')
 @login_required
@@ -1096,6 +1107,141 @@ def edit_category(cat_id):
         flash(f'修改失败: {str(e)}', 'error')
     
     return redirect(url_for('categories'))
+
+# ==================== 标签管理路由 ====================
+@app.route('/tags', methods=['GET', 'POST'])
+@login_required
+def tags():
+    """标签管理页面"""
+    check_admin()
+    form = TagForm()
+    if form.validate_on_submit():
+        if Tag.query.filter_by(name=form.name.data).first():
+            flash('标签已存在', 'warning')
+        else:
+            tag = Tag(name=form.name.data, color=form.color.data)
+            db.session.add(tag)
+            db.session.commit()
+            log_action(current_user, f"添加标签:{form.name.data}")
+            flash('添加成功', 'success')
+        return redirect(url_for('tags'))
+    tag_list = Tag.query.order_by(Tag.id.desc()).all()
+    return render_template('tags.html', form=form, tags=tag_list)
+
+@app.route('/tags/delete/<int:tag_id>', methods=['POST'])
+@login_required
+def delete_tag(tag_id):
+    """删除标签"""
+    from flask_wtf.csrf import validate_csrf
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except:
+        flash('CSRF令牌验证失败', 'error')
+        return redirect(url_for('tags'))
+    
+    check_admin()
+    tag = db.session.get(Tag, tag_id)
+    if tag is None:
+        flash('标签不存在', 'error')
+        return redirect(url_for('tags'))
+    
+    tag_name = tag.name
+    db.session.delete(tag)
+    db.session.commit()
+    log_action(current_user, f"删除标签:{tag_name}")
+    flash('已删除', 'success')
+    return redirect(url_for('tags'))
+
+@app.route('/tags/batch', methods=['POST'])
+@login_required
+def batch_tags():
+    """批量操作标签"""
+    check_admin()
+    
+    from flask_wtf.csrf import validate_csrf
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except:
+        flash('CSRF令牌验证失败', 'error')
+        return redirect(url_for('tags'))
+    
+    action = request.form.get('action')
+    tag_ids = request.form.getlist('tag_ids')
+    
+    if not tag_ids:
+        flash('请至少选择一个标签', 'error')
+        return redirect(url_for('tags'))
+    
+    try:
+        deleted_count = 0
+        deleted_names = []
+        
+        if action == 'delete':
+            for tag_id in tag_ids:
+                tag = db.session.get(Tag, tag_id)
+                if tag:
+                    deleted_names.append(tag.name)
+                    db.session.delete(tag)
+                    deleted_count += 1
+            
+            if deleted_count > 0:
+                db.session.commit()
+                log_action(current_user, f"批量删除标签: {', '.join(deleted_names)}")
+                flash(f'成功删除 {deleted_count} 个标签', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'操作失败: {str(e)}', 'error')
+    
+    return redirect(url_for('tags'))
+
+@app.route('/tags/edit/<int:tag_id>', methods=['POST'])
+@login_required
+def edit_tag(tag_id):
+    """编辑标签"""
+    check_admin()
+    
+    from flask_wtf.csrf import validate_csrf
+    try:
+        validate_csrf(request.form.get('csrf_token'))
+    except:
+        flash('CSRF令牌验证失败', 'error')
+        return redirect(url_for('tags'))
+    
+    tag = db.session.get(Tag, tag_id)
+    if not tag:
+        flash('标签不存在', 'error')
+        return redirect(url_for('tags'))
+    
+    new_name = request.form.get('name', '').strip()
+    new_color = request.form.get('color', 'primary')
+    
+    if not new_name:
+        flash('标签名不能为空', 'error')
+        return redirect(url_for('tags'))
+    
+    # 检查标签名是否已存在（排除自身）
+    existing_tag = Tag.query.filter(
+        Tag.name == new_name, 
+        Tag.id != tag_id
+    ).first()
+    
+    if existing_tag:
+        flash('标签名已存在', 'error')
+        return redirect(url_for('tags'))
+    
+    try:
+        old_name = tag.name
+        tag.name = new_name
+        tag.color = new_color
+        db.session.commit()
+        log_action(current_user, f"修改标签: {old_name} -> {new_name}")
+        flash('标签修改成功', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'修改失败: {str(e)}', 'error')
+    
+    return redirect(url_for('tags'))
 
 @app.route('/sales')
 @login_required
@@ -1496,9 +1642,10 @@ if __name__ == '__main__':
             db.session.execute(text("ALTER TABLE product ADD COLUMN project VARCHAR(128)"))
             db.session.execute(text("ALTER TABLE product ADD COLUMN sku VARCHAR(64)"))
             db.session.execute(text("ALTER TABLE product ADD COLUMN brand VARCHAR(64)"))
-            db.session.execute(text("ALTER TABLE product ADD COLUMN retail_price DECIMAL(10,2)"))
+            db.session.execute(text("ALTER TABLE product ADD COLUMN cost_price DECIMAL(10,2)"))
+            db.session.execute(text("ALTER TABLE product ADD COLUMN market_price DECIMAL(10,2)"))
             db.session.commit()
-            print('已向 product 表添加新列（project, sku, brand, retail_price）')
+            print('已向 product 表添加新列（project, sku, brand, cost_price, market_price）')
         except Exception:
             db.session.rollback()
 

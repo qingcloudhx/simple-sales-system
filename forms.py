@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, FloatField, SelectField, FileField, BooleanField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, EqualTo, Email
+from wtforms.widgets import CheckboxInput, ListWidget
 from flask_wtf.file import FileAllowed
 
 class LoginForm(FlaskForm):
@@ -29,9 +30,37 @@ class ResetPasswordForm(FlaskForm):
     ])
     submit = SubmitField('重置密码')
 
+class TagForm(FlaskForm):
+    name = StringField('标签名', validators=[DataRequired(), Length(max=64)])
+    color = SelectField('颜色', choices=[
+        ('primary', '蓝色'),
+        ('success', '绿色'),
+        ('warning', '橙色'),
+        ('danger', '红色'),
+        ('info', '青色'),
+        ('secondary', '灰色'),
+        ('dark', '黑色')
+    ], default='primary')
+    submit = SubmitField('添加')
+
+class TagEditForm(FlaskForm):
+    name = StringField('标签名', validators=[DataRequired(), Length(max=64)])
+    color = SelectField('颜色', choices=[
+        ('primary', '蓝色'),
+        ('success', '绿色'),
+        ('warning', '橙色'),
+        ('danger', '红色'),
+        ('info', '青色'),
+        ('secondary', '灰色'),
+        ('dark', '黑色')
+    ], default='primary')
+    submit = SubmitField('保存')
+
 class ProductForm(FlaskForm):
     name = StringField('商品名', validators=[DataRequired()])
-    price = FloatField('单价', validators=[DataRequired(), NumberRange(min=0)])
+    price = FloatField('销售价', validators=[DataRequired(), NumberRange(min=0)])
+    cost_price = FloatField('成本价', validators=[Optional(), NumberRange(min=0)])
+    market_price = FloatField('市场价', validators=[Optional(), NumberRange(min=0)])
     stock = IntegerField('库存', validators=[DataRequired(), NumberRange(min=0)])
     category = SelectField('分类', coerce=int)
     image_link = StringField('图片链接', validators=[Optional()])
@@ -40,7 +69,9 @@ class ProductForm(FlaskForm):
 
 class ManualProductForm(FlaskForm):
     name = StringField('商品名', validators=[DataRequired()])
-    price = FloatField('单价', validators=[DataRequired(), NumberRange(min=0)])
+    price = FloatField('销售价', validators=[DataRequired(), NumberRange(min=0)])
+    cost_price = FloatField('成本价', validators=[Optional(), NumberRange(min=0)])
+    market_price = FloatField('市场价', validators=[Optional(), NumberRange(min=0)])
     stock = IntegerField('库存', validators=[DataRequired(), NumberRange(min=0)])
     category = SelectField('分类', coerce=int)
     image_link = StringField('图片链接', validators=[Optional()])

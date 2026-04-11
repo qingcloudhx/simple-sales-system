@@ -52,8 +52,10 @@
                 <th class="text-center">货号</th>
                 <th class="text-center">品牌</th>
                 <th class="mobile-hidden text-center">分类</th>
-                <th class="text-center">单价</th>
-                <th class="text-center">价格</th>
+                <th class="text-center">标签</th>
+                <th class="text-center">销售价</th>
+                <th class="mobile-hidden text-center">成本价</th>
+                <th class="mobile-hidden text-center">市场价</th>
                 <th class="text-center">库存</th>
                 {% if current_user.is_admin %}<th class="text-center">操作</th>{% endif %}
             </tr>
@@ -84,13 +86,20 @@
                 <td data-label="货号" class="text-center">{{ p.sku or '' }}</td>
                 <td data-label="品牌" class="text-center">{{ p.brand or '' }}</td>
                 <td data-label="分类" class="mobile-hidden text-center">{{ p.category.name }}</td>
-                <td data-label="单价" class="text-center">{{ p.price }}</td>
-                <td data-label="价格" class="text-center">{{ p.retail_price or '' }}</td>
+                <td data-label="标签" class="text-center">
+                    {% if p.tags %}
+                        {% for t in p.tags %}
+                        <span class="badge bg-{{ t.color }}">{{ t.name }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+                <td data-label="销售价" class="text-center">{{ p.price }}</td>
+                <td data-label="成本价" class="mobile-hidden text-center">{{ p.cost_price or '-' }}</td>
+                <td data-label="市场价" class="mobile-hidden text-center">{{ p.market_price or '-' }}</td>
                 <td data-label="库存" class="text-center">{{ p.stock }}</td>
                 {% if current_user.is_admin %}
                 <td data-label="操作" class="table-actions text-center">
                     <a href="{{ url_for('product_edit', pid=p.id) }}" class="btn btn-sm btn-primary">编辑</a>
-                    <!-- 修改后 -->
                     <form action="{{ url_for('delete_product', pid=p.id) }}" method="post" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-danger btn-sm" 

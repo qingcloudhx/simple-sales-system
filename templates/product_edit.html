@@ -11,16 +11,41 @@
             {{ form.name(class="form-control") }}
         </div>
         <div class="col-12 col-md-6">
+            {{ form.category.label }} 
+            {{ form.category(class="form-select") }}
+        </div>
+        <div class="col-12 col-md-4">
             {{ form.price.label }} 
             {{ form.price(class="form-control") }}
+        </div>
+        <div class="col-12 col-md-4">
+            {{ form.cost_price.label }} 
+            {{ form.cost_price(class="form-control", value=product.cost_price or '') }}
+        </div>
+        <div class="col-12 col-md-4">
+            {{ form.market_price.label }} 
+            {{ form.market_price(class="form-control", value=product.market_price or '') }}
         </div>
         <div class="col-12 col-md-6">
             {{ form.stock.label }} 
             {{ form.stock(class="form-control") }}
         </div>
-        <div class="col-12 col-md-6">
-            {{ form.category.label }} 
-            {{ form.category(class="form-select") }}
+        <div class="col-12">
+            <label class="form-label">商品标签</label>
+            <div class="border p-3 rounded">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for t in tags %}
+                    <label class="tag-checkbox-label">
+                        <input type="checkbox" name="tag_ids" value="{{ t.id }}" 
+                               {% if t in product.tags %}checked{% endif %}>
+                        <span class="badge bg-{{ t.color }}">{{ t.name }}</span>
+                    </label>
+                    {% endfor %}
+                    {% if not tags %}
+                    <span class="text-muted">暂无标签，请先添加标签</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         <div class="col-12 col-md-6">
             {{ form.image_link.label }} 

@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block title %}标签管理{% endblock %}
+{% block content %}
+<h3>标签管理</h3>
+
+<!-- 添加标签表单 -->
+<form method="post" class="row g-2 align-items-center mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ form.hidden_tag() }}
+    <div class="col-12 col-md-4">
+        {{ form.name.label }} 
+        {{ form.name(class="form-control", placeholder="输入标签名") }}
+    </div>
+    <div class="col-12 col-md-3">
+        {{ form.color.label }}
+        {{ form.color(class="form-select") }}
+    </div>
+    <div class="col-12 col-md-3">
+        <button class="btn btn-success mt-md-4">{{ form.submit.label }}</button>
+    </div>
+</form>
+
+<!-- 批量操作区域 -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="selectAllBtn">全选</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllBtn">取消全选</button>
+    </div>
+    <div>
+        <button type="button" id="batchDeleteBtn" class="btn btn-danger btn-sm">批量删除</button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th width="40px">
+                    <input type="checkbox" id="selectAll">
+                </th>
+                <th>标签名</th>
+                <th>颜色</th>
+                <th>商品数</th>
+                <th width="200px">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tags %}
+            <tr id="tag-row-{{ t.id }}">
+                <td data-label="选择" class="text-center align-middle">
+                    <input type="checkbox" name="tag_ids" value="{{ t.id }}" class="tag-checkbox">
+                </td>
+                <td data-label="标签名" class="align-middle text-left">
+                    <span class="tag-name" id="tag-name-{{ t.id }}">
+                        <span class="badge bg-{{ t.color }}">{{ t.name }}</span>
+                    </span>
+                    <form method="post" action="{{ url_for('edit_tag', tag_id=t.id) }}" 
+                          class="edit-form" id="edit-form-{{ t.id }}" style="display: none;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="name" value="{{ t.name }}" 
+                                   class="form-control form-control-sm" required>
+                            <select name="color" class="form-select form-select-sm" style="width: auto;">
+                                <option value="primary" {% if t.color == 'primary' %}selected{% endif %}>蓝色</option>
+                                <option value="success" {% if t.color == 'success' %}selected{% endif %}>绿色</option>
+                                <option value="warning" {% if t.color == 'warning' %}selected{% endif %}>橙色</option>
+                                <option value="danger" {% if t.color == 'danger' %}selected{% endif %}>红色</option>
+                                <option value="info" {% if t.color == 'info' %}selected{% endif %}>青色</option>
+                                <option value="secondary" {% if t.color == 'secondary' %}selected{% endif %}>灰色</option>
+                                <option value="dark" {% if t.color == 'dark' %}selected{% endif %}>黑色</option>
+                            </select>
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-success btn-sm">保存</button>
+                                <button type="button" class="btn btn-secondary btn-sm cancel-edit" data-tag-id="{{ t.id }}">取消</button>
+                            </div>
+                        </div>
+                    </form>
+                </td>
+                <td data-label="颜色" class="align-middle text-center">
+                    {% if t.color == 'primary' %}蓝色
+                    {% elif t.color == 'success' %}绿色
+                    {% elif t.color == 'warning' %}橙色
+                    {% elif t.color == 'danger' %}红色
+                    {% elif t.color == 'info' %}青色
+                    {% elif t.color == 'secondary' %}灰色
+                    {% elif t.color == 'dark' %}黑色
+                    {% else %}{{ t.color }}{% endif %}
+                </td>
+                <td data-label="商品数" class="align-middle text-center">
+                    {{ t.products|length }}
+                </td>
+                <td data-label="操作" class="align-middle text-left">
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" 
+                            data-tag-id="{{ t.id }}">编辑</button>
+                    <form action="{{ url_for('delete_tag', tag_id=t.id) }}" method="post" 
+                          style="display: inline;" class="delete-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm" 
+                                onclick="return confirm('确定删除该标签？')">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 批量删除表单（隐藏） -->
+<form method="post" id="batchDeleteForm" action="{{ url_for('batch_tags') }}" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="tag_ids" id="batchTagIds">
+</form>
+
+<!-- 如果没有标签时显示提示 -->
+{% if not tags %}
+<div class="alert alert-info text-center">
+    暂无标签数据
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 全选/取消全选功能
+    const selectAll = document.getElementById('selectAll');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const checkboxes = document.querySelectorAll('.tag-checkbox');
+    
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        selectAll.checked = true;
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAll.checked = false;
+    });
+    
+    // 编辑功能
+    const editButtons = document.querySelectorAll('.edit-btn');
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.getAttribute('data-tag-id');
+            const nameSpan = document.getElementById('tag-name-' + tagId);
+            const editForm = document.getElementById('edit-form-' + tagId);
+            const editBtn = this;
+            
+            // 隐藏显示的名称，显示编辑表单
+            nameSpan.style.display = 'none';
+            editForm.style.display = 'block';
+            editBtn.style.display = 'none';
+        });
+    });
+    
+    // 取消编辑
+    const cancelButtons = document.querySelectorAll('.cancel-edit');
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.getAttribute('data-tag-id');
+            const nameSpan = document.getElementById('tag-name-' + tagId);
+            const editForm = document.getElementById('edit-form-' + tagId);
+            const editBtn = document.querySelector('.edit-btn[data-tag-id="' + tagId + '"]');
+            
+            // 显示名称，隐藏编辑表单
+            editForm.style.display = 'none';
+            nameSpan.style.display = 'inline';
+            editBtn.style.display = 'inline-block';
+        });
+    });
+    
+    // 批量删除功能
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    const batchDeleteForm = document.getElementById('batchDeleteForm');
+    const batchTagIds = document.getElementById('batchTagIds');
+    
+    batchDeleteBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.tag-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('请至少选择一个标签进行删除');
+            return false;
+        }
+        
+        if (!confirm('确定删除选中的 ' + checkedBoxes.length + ' 个标签吗？')) {
+            return false;
+        }
+        
+        // 收集选中的标签ID
+        const tagIds = Array.from(checkedBoxes).map(checkbox => checkbox.value).join(',');
+        batchTagIds.value = tagIds;
+        
+        // 提交表单
+        batchDeleteForm.submit();
+    });
+});
+</script>
+
+<style>
+.edit-form .input-group {
+    width: 300px;
+}
+.tag-checkbox {
+    cursor: pointer;
+}
+</style>
+{% endblock %}
