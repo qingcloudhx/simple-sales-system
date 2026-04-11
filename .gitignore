@@ -2,4 +2,5 @@
 static/uploads
 .env
 Dockerfile
-docker-compose.ym
+docker-compose.yml
+files
