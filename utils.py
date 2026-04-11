@@ -5,18 +5,14 @@ from models import db, Product, Category
 def import_products_csv(file):
     df = pd.read_csv(file)
     # 1. 检查列名是否完全匹配（忽略空格和大小写，但严格匹配文字）
-    required_columns = ['商品名', '单价', '库存', '分类']
-    # 可选列：项目、货号、品牌、价格(显示用)
-    optional_columns = ['项目', '货号', '品牌', '价格']
-    # 清洗列名（去除前后空格），并建立标准化列名映射（去除括号和可选标记）
+    required_columns = ['商品名', '销售价', '库存', '分类']
+    # 可选列：项目、货号、品牌、成本价、市场价、图片链接
+    optional_columns = ['项目', '货号', '品牌', '成本价', '市场价', '图片链接']
+    # 清洗列名（去除前后空格）
     def normalize_col_name(c):
         if c is None:
             return ''
         s = str(c).strip()
-        # 去掉中英文括号及其中内容，例如 "项目(可选)" 或 "项目（可选）"
-        s = re.sub(r"\(.*?\)", '', s)
-        s = re.sub(r"（.*?）", '', s)
-        s = s.strip()
         return s
 
     original_cols = list(df.columns)
@@ -38,7 +34,7 @@ def import_products_csv(file):
         row_num = idx + 1
         # 2. 清洗字段值（去除前后空格）
         prod_name = str(row.get('商品名', '')).strip()
-        # 使用 normalized_map 查找实际列名，兼容像 "项目(可选)" 这样的列头
+        # 使用 normalized_map 查找实际列名，兼容列头格式
         def get_raw(col_name):
             actual = normalized_map.get(col_name)
             if actual is None:
@@ -46,28 +42,32 @@ def import_products_csv(file):
             return row.get(actual)
 
         # 为了兼容 pandas 的 NaN，需要用 pd.isna 判断并统一为空字符串
-        raw_price = get_raw('单价')
+        raw_price = get_raw('销售价')
+        raw_cost_price = get_raw('成本价')
+        raw_market_price = get_raw('市场价')
         raw_stock = get_raw('库存')
         raw_category = get_raw('分类')
         raw_project = get_raw('项目')
         raw_sku = get_raw('货号')
         raw_brand = get_raw('品牌')
-        raw_retail = get_raw('价格')
+        raw_image = get_raw('图片链接')
 
         price_str = '' if raw_price is None or pd.isna(raw_price) else str(raw_price).strip()
+        cost_price_str = '' if raw_cost_price is None or pd.isna(raw_cost_price) else str(raw_cost_price).strip()
+        market_price_str = '' if raw_market_price is None or pd.isna(raw_market_price) else str(raw_market_price).strip()
         stock_str = '' if raw_stock is None or pd.isna(raw_stock) else str(raw_stock).strip()
         category_name = '' if raw_category is None or pd.isna(raw_category) else str(raw_category).strip()
         project = None if raw_project is None or pd.isna(raw_project) else str(raw_project).strip()
         sku = None if raw_sku is None or pd.isna(raw_sku) else str(raw_sku).strip()
         brand = None if raw_brand is None or pd.isna(raw_brand) else str(raw_brand).strip()
-        retail_price_str = '' if raw_retail is None or pd.isna(raw_retail) else str(raw_retail).strip()
+        image_link = '' if raw_image is None or pd.isna(raw_image) else str(raw_image).strip()
         
         # 3. 严格检查空值（包括空字符串和纯空格）
         if not prod_name:
             print(f"第{row_num}行：商品名为空或仅含空格")
             continue
         if not price_str:
-            print(f"第{row_num}行：单价为空或仅含空格")
+            print(f"第{row_num}行：销售价为空或仅含空格")
             continue
         if not stock_str:
             print(f"第{row_num}行：库存为空或仅含空格")
@@ -76,7 +76,7 @@ def import_products_csv(file):
             print(f"第{row_num}行：分类为空或仅含空格")
             category_name = "未分类"  # 分类为空时设为默认
         
-        # 4. 验证单价和库存的数值格式
+        # 4. 验证数值格式
         def extract_number(s):
             if s is None or s == '':
                 return None
@@ -88,25 +88,19 @@ def import_products_csv(file):
             return num
 
         price_num = extract_number(price_str)
-        retail_num = extract_number(retail_price_str)
+        cost_price_num = extract_number(cost_price_str) if cost_price_str else None
+        market_price_num = extract_number(market_price_str) if market_price_str else None
         try:
             if price_num is None:
-                raise ValueError('无法解析单价')
+                raise ValueError('无法解析销售价')
             price = float(price_num)
+            cost_price = float(cost_price_num) if cost_price_num else None
+            market_price = float(market_price_num) if market_price_num else None
             # 有时 stock_str 可能是浮点形式（如 '120.0'），先将其转为 float 再转为 int
             stock = int(float(stock_str))
         except Exception:
-            print(f"第{row_num}行：单价或库存格式错误（单价：{price_str}，库存：{stock_str}）")
+            print(f"第{row_num}行：价格或库存格式错误（销售价：{price_str}，库存：{stock_str}）")
             continue
-
-        # 4b. 可选的显示价格格式
-        retail_price = None
-        if retail_num:
-            try:
-                retail_price = float(retail_num)
-            except Exception:
-                print(f"第{row_num}行：显示价格格式错误（价格：{retail_price_str}），将忽略")
-                retail_price = None
         
         # 5. 处理分类
         category = Category.query.filter_by(name=category_name).first()
@@ -116,15 +110,14 @@ def import_products_csv(file):
             db.session.add(category)
             db.session.flush()  # 立即获取新分类的ID
         
-        # 6. 处理图片链接（可选）
-        image_link = str(row.get('图片链接', '')).strip() if '图片链接' in df.columns else ''
-        
-        # 7. 创建或更新商品
+        # 6. 创建或更新商品
         # 检查是否已存在同名商品
         existing_product = Product.query.filter_by(name=prod_name).first()
         if existing_product:
             # 更新现有商品
             existing_product.price = price
+            existing_product.cost_price = cost_price
+            existing_product.market_price = market_price
             existing_product.stock = stock
             existing_product.category_id = category.id
             if image_link:
@@ -135,24 +128,23 @@ def import_products_csv(file):
                 existing_product.sku = sku
             if brand is not None and brand != '':
                 existing_product.brand = brand
-            if retail_price is not None:
-                existing_product.retail_price = retail_price
-            print(f"第{row_num}行：更新商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand}, 显示价格={retail_price})")
+            print(f"第{row_num}行：更新商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand})")
         else:
             # 创建新商品
             product = Product(
                 name=prod_name,
                 price=price,
+                cost_price=cost_price,
+                market_price=market_price,
                 stock=stock,
                 category_id=category.id,
                 image=image_link if image_link else None,
                 project=project if project else None,
                 sku=sku if sku else None,
-                brand=brand if brand else None,
-                retail_price=retail_price if retail_price is not None else None
+                brand=brand if brand else None
             )
             db.session.add(product)
-            print(f"第{row_num}行：创建商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand}, 显示价格={retail_price})")
+            print(f"第{row_num}行：创建商品 '{prod_name}' (项目={project}, 货号={sku}, 品牌={brand})")
         
         success_count += 1
     

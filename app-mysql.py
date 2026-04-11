@@ -4,7 +4,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from forms import *
-from models import db, User, Category, Product, Sale, Log
+from models import db, User, Category, Product, Sale, Log, Tag
 from utils import import_products_csv
 import os
 import os.path as op
@@ -904,6 +904,9 @@ def product_import():
             # 创建新商品
             product = Product(
                 name=manual_form.name.data,
+                project=manual_form.project.data.strip() if manual_form.project.data else None,
+                sku=manual_form.sku.data.strip() if manual_form.sku.data else None,
+                brand=manual_form.brand.data.strip() if manual_form.brand.data else None,
                 price=manual_form.price.data,
                 cost_price=manual_form.cost_price.data if manual_form.cost_price.data else None,
                 market_price=manual_form.market_price.data if manual_form.market_price.data else None,
@@ -947,13 +950,13 @@ def download_import_template():
     output = StringIO()
     writer = csv.writer(output)
 
-    # 写入表头（可选列：项目、货号、品牌、价格）
-    writer.writerow(['商品名', '单价', '库存', '分类', '项目(可选)', '货号(可选)', '品牌(可选)', '价格(可选)', '图片链接(可选)'])
+    # 写入表头（必填：商品名、销售价、库存、分类；可选：项目、货号、品牌、成本价、市场价、图片链接）
+    writer.writerow(['商品名', '销售价', '库存', '分类', '项目', '货号', '品牌', '成本价', '市场价', '图片链接'])
 
     # 写入示例数据
-    writer.writerow(['示例商品1', '19.99', '100', '电子产品', '项目A', 'SKU123', '品牌X', '21.99', 'http://example.com/image1.jpg'])
-    writer.writerow(['示例商品2', '29.99', '50', '服装', '', 'SKU456', '品牌Y', '', ''])
-    writer.writerow(['示例商品3', '9.99', '200', '食品', '项目C', '', '', '', ''])
+    writer.writerow(['示例商品1', '19.99', '100', '电子产品', '项目A', 'SKU001', '品牌X', '15.00', '29.99', 'http://example.com/image1.jpg'])
+    writer.writerow(['示例商品2', '29.99', '50', '服装', '', 'SKU002', '品牌Y', '20.00', '39.99', ''])
+    writer.writerow(['示例商品3', '9.99', '200', '食品', '项目C', 'SKU003', '', '7.00', '15.00', ''])
 
     # 创建响应
     response = make_response(output.getvalue())

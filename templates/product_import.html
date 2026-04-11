@@ -8,7 +8,7 @@
                 <h5 class="card-title mb-0">批量导入商品 (CSV)</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">请上传CSV文件，必填列：商品名、单价、库存、分类；可选列：项目、货号、品牌、价格（导入后在商品列表展示，仅供查看，不可在编辑中修改）</p>
+                <p class="card-text">请上传CSV文件，必填列：商品名、销售价、库存、分类；可选列：项目、货号、品牌、成本价、市场价、图片链接</p>
                 <div class="mb-3">
                     <a href="{{ url_for('download_import_template') }}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-download"></i> 下载CSV模板
@@ -41,15 +41,35 @@
                             {{ manual_form.name.label }} 
                             {{ manual_form.name(class="form-control") }}
                         </div>
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-4">
+                            {{ manual_form.project.label }}
+                            {{ manual_form.project(class="form-control", placeholder="可选") }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            {{ manual_form.sku.label }}
+                            {{ manual_form.sku(class="form-control", placeholder="可选") }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            {{ manual_form.brand.label }}
+                            {{ manual_form.brand(class="form-control", placeholder="可选") }}
+                        </div>
+                        <div class="col-12 col-md-4">
                             {{ manual_form.price.label }} 
                             {{ manual_form.price(class="form-control") }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            {{ manual_form.cost_price.label }}
+                            {{ manual_form.cost_price(class="form-control", placeholder="可选") }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            {{ manual_form.market_price.label }}
+                            {{ manual_form.market_price(class="form-control", placeholder="可选") }}
                         </div>
                         <div class="col-12 col-md-6">
                             {{ manual_form.stock.label }} 
                             {{ manual_form.stock(class="form-control") }}
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 col-md-6">
                             {{ manual_form.category.label }} 
                             {{ manual_form.category(class="form-select") }}
                         </div>
@@ -89,13 +109,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!name || !price || !stock) {
                 e.preventDefault();
-                alert('请填写必填字段：商品名、单价和库存');
+                alert('请填写必填字段：商品名、销售价和库存');
                 return false;
             }
             
             if (price <= 0) {
                 e.preventDefault();
-                alert('单价必须大于0');
+                alert('销售价必须大于0');
                 return false;
             }
             

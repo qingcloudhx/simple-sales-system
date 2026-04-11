@@ -69,6 +69,9 @@ class ProductForm(FlaskForm):
 
 class ManualProductForm(FlaskForm):
     name = StringField('商品名', validators=[DataRequired()])
+    project = StringField('项目', validators=[Optional()])
+    sku = StringField('货号', validators=[Optional()])
+    brand = StringField('品牌', validators=[Optional()])
     price = FloatField('销售价', validators=[DataRequired(), NumberRange(min=0)])
     cost_price = FloatField('成本价', validators=[Optional(), NumberRange(min=0)])
     market_price = FloatField('市场价', validators=[Optional(), NumberRange(min=0)])
