@@ -1099,7 +1099,7 @@ def batch_categories():
 @app.route('/categories/edit/<int:cat_id>', methods=['POST'])
 @login_required
 def edit_category(cat_id):
-    """编辑分类"""·
+    """编辑分类"""
     check_admin()
     
     # CSRF验证
