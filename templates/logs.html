@@ -41,18 +41,12 @@
                                 </div>
                             </td>
                             <td data-label="备注" class="align-middle text-left">
-                                <div class="remark-container">
-                                    <div class="remark-text small text-muted" id="remark-text-{{ log.id }}">
-                                        {% if log.remark %}
-                                            {{ log.remark }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </div>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm mt-1" 
-                                            onclick="showRemarkEdit({{ log.id }}, '{{ log.remark or '' }}')">
-                                        <i class="bi bi-pencil"></i> 编辑
-                                    </button>
+                                <div class="remark-text small" id="remark-text-{{ log.id }}">
+                                    {% if log.remark %}
+                                        {{ log.remark }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td data-label="状态" class="align-middle text-left">
@@ -71,9 +65,11 @@
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-warning btn-sm">撤回</button>
                                 </form>
-                                {% else %}
-                                <span class="text-muted">-</span>
                                 {% endif %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="showRemarkEdit({{ log.id }}, '{{ log.remark or '' }}')">
+                                    <i class="bi bi-pencil"></i> 编辑
+                                </button>
                             </td>
                         </tr>
                         {% else %}
