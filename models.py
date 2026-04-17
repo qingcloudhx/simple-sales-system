@@ -66,3 +66,4 @@ class Log(db.Model):
     user = db.relationship('User')
     sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=True)
     sale = db.relationship('Sale')
+    remark = db.Column(db.Text, nullable=True)  # 备注字段

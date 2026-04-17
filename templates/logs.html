@@ -16,19 +16,20 @@
                 <table class="table table-hover mb-0 logs-table">
                     <thead class="table-light">
                         <tr>
-                            <th width="160">时间</th>
-                            <th width="120">操作人</th>
+                            <th width="140">时间</th>
+                            <th width="100">操作人</th>
                             <th>操作内容</th>
-                            <th width="100">状态</th>
-                            <th width="100">操作</th>
+                            <th width="160">备注</th>
+                            <th width="80">状态</th>
+                            <th width="120">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in logs.items %}
                         <tr class="log-row">
-                            <td data-label="时间" class="align-middle  text-left">{{ log.ts.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td data-label="操作人" class="align-middle  text-left">{{ log.user.username }}</td>
-                            <td data-label="操作内容" class="align-middle  text-left">
+                            <td data-label="时间" class="align-middle text-left">{{ log.ts.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td data-label="操作人" class="align-middle text-left">{{ log.user.username }}</td>
+                            <td data-label="操作内容" class="align-middle text-left">
                                 <div class="log-action-content">
                                     <div class="log-main-action">{{ log.action }}</div>
                                     {% if log.sale %}
@@ -39,7 +40,22 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td data-label="状态" class="align-middle  text-left">
+                            <td data-label="备注" class="align-middle text-left">
+                                <div class="remark-container">
+                                    <div class="remark-text small text-muted" id="remark-text-{{ log.id }}">
+                                        {% if log.remark %}
+                                            {{ log.remark }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm mt-1" 
+                                            onclick="showRemarkEdit({{ log.id }}, '{{ log.remark or '' }}')">
+                                        <i class="bi bi-pencil"></i> 编辑
+                                    </button>
+                                </div>
+                            </td>
+                            <td data-label="状态" class="align-middle text-left">
                                 {% if log.sale and log.sale.is_reversed %}
                                 <span class="badge bg-danger">已撤回</span>
                                 {% elif log.sale %}
@@ -48,7 +64,7 @@
                                 <span class="badge bg-secondary">系统操作</span>
                                 {% endif %}
                             </td>
-                            <td data-label="操作" class="align-middle  text-left">
+                            <td data-label="操作" class="align-middle text-left">
                                 {% if log.sale and not log.sale.is_reversed and (current_user.is_admin or current_user.id == log.user_id) %}
                                 <form method="post" action="{{ url_for('reverse_sale', sale_id=log.sale.id ) }}" 
                                       onsubmit="return confirm('确定要撤回此操作吗？撤回将恢复库存！');" class="d-inline">
@@ -62,7 +78,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-4">暂无日志记录</td>
+                            <td colspan="6" class="text-center py-4">暂无日志记录</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -99,6 +115,33 @@
         </ul>
     </nav>
     {% endif %}
+</div>
+
+<!-- 备注编辑模态框 -->
+<div class="modal fade" id="remarkModal" tabindex="-1" aria-labelledby="remarkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="remarkModalLabel">编辑备注</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <form method="post" id="remarkForm">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="edit-log-id" name="log_id" value="">
+                    <div class="mb-3">
+                        <label for="edit-remark" class="form-label">备注内容</label>
+                        <textarea class="form-control" id="edit-remark" name="remark" rows="4" 
+                                  placeholder="请输入备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -168,5 +211,24 @@
             min-height: auto;
         }
     }
+    
+    /* 备注样式 */
+    .remark-container {
+        max-width: 150px;
+    }
+    .remark-text {
+        word-break: break-word;
+        white-space: pre-wrap;
+    }
 </style>
+
+<script>
+function showRemarkEdit(logId, currentRemark) {
+    document.getElementById('edit-log-id').value = logId;
+    document.getElementById('edit-remark').value = currentRemark;
+    document.getElementById('remarkForm').action = '/logs/' + logId + '/remark';
+    var modal = new bootstrap.Modal(document.getElementById('remarkModal'));
+    modal.show();
+}
+</script>
 {% endblock %}

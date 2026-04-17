@@ -1099,7 +1099,7 @@ def batch_categories():
 @app.route('/categories/edit/<int:cat_id>', methods=['POST'])
 @login_required
 def edit_category(cat_id):
-    """编辑分类"""
+    """编辑分类"""·
     check_admin()
     
     # CSRF验证
@@ -1621,6 +1621,18 @@ def logs():
 
     return render_template('logs.html', logs=logs)
 
+@app.route('/logs/<int:log_id>/remark', methods=['POST'])
+@login_required
+def edit_log_remark(log_id):
+    """编辑日志备注"""
+    check_admin()
+    log = Log.query.get_or_404(log_id)
+    remark = request.form.get('remark', '')
+    log.remark = remark if remark.strip() else None
+    db.session.commit()
+    flash('备注已更新', 'success')
+    return redirect(url_for('logs'))
+
 def migrate_log_sale_relations():
     """将历史销售记录与日志关联"""
     logs = Log.query.filter(Log.action.like('%销售:%') | Log.action.like('%进货:%')).all()
@@ -1680,6 +1692,14 @@ if __name__ == '__main__':
             db.session.execute(text("ALTER TABLE product ADD COLUMN market_price DECIMAL(10,2)"))
             db.session.commit()
             print('已向 product 表添加新列（project, sku, brand, cost_price, market_price）')
+        except Exception:
+            db.session.rollback()
+        # 尝试为已有数据库添加 remark 列（若已存在会抛错并被忽略）
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("ALTER TABLE log ADD COLUMN remark TEXT"))
+            db.session.commit()
+            print('已向 log 表添加 remark 列')
         except Exception:
             db.session.rollback()
 

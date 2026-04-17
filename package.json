@@ -1,0 +1,24 @@
+{
+  "name": "simple-sales-system",
+  "version": "1.0.0",
+  "description": "![image](https://github.com/tamakyi/simple-sales-system/blob/main/screenshot/wolf_sales.webp) <p align=\"center\"> 狼的小卖部 - 基于Python的简单网页端进销存/销售管理系统</p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qingcloudhx/simple-sales-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/qingcloudhx/simple-sales-system/issues"
+  },
+  "homepage": "https://github.com/qingcloudhx/simple-sales-system#readme",
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
